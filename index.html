@@ -3,16 +3,48 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Weather Forecast</title>
+    <title>Weather Dashboard</title>
     <link rel="stylesheet" href="styles.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap"
+      rel="stylesheet"
+    />
   </head>
   <body>
-    <h1>Weather Forecast</h1>
-    <form id="weather-form">
-      <input type="text" id="location" placeholder="Enter location" required />
-      <button type="submit">Get Weather</button>
-    </form>
-    <div id="weather-info"></div>
+    <div class="container">
+      <header>
+        <h1>Weather Dashboard</h1>
+        <div class="unit-toggle">
+          <div class="toggle-switch">
+            <input type="checkbox" id="unit-switch" class="toggle-input" />
+            <label for="unit-switch" class="toggle-label">
+              <span class="toggle-text celsius">°C</span>
+              <span class="toggle-text fahrenheit active">°F</span>
+            </label>
+          </div>
+        </div>
+      </header>
+
+      <div class="search-container">
+        <form id="weather-form">
+          <input
+            type="text"
+            id="location"
+            placeholder="Enter city or location"
+            required
+          />
+          <button type="submit"><i class="fas fa-search"></i> Search</button>
+        </form>
+      </div>
+
+      <div id="weather-cards" class="weather-cards-container">
+        <!-- Weather cards will be added here dynamically -->
+      </div>
+    </div>
 
     <script src="script.js"></script>
   </body>
