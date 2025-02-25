@@ -3,13 +3,13 @@
 ## Introduction
 
 - [x] Set up a blank HTML document with the appropriate links to your JavaScript and CSS files.
-- [ ] Write the functions that hit the API to fetch weather data.
-- [ ] Process the JSON data from the API to extract the required information.
-- [ ] Set up a form for user input to fetch weather information.
-- [ ] Display the fetched weather information on the webpage.
-- [ ] Add styling to enhance the appearance of the webpage.
-- [ ] (Optional) Implement a loading component to show while fetching data.
-- [ ] Push the project to GitHub and share the link.
+- [x] Write the functions that hit the API to fetch weather data.
+- [x] Process the JSON data from the API to extract the required information.
+- [x] Set up a form for user input to fetch weather information.
+- [x] Display the fetched weather information on the webpage.
+- [x] Add styling to enhance the appearance of the webpage.
+- [x] (Optional) Implement a loading component to show while fetching data.
+- [] Push the project to GitHub and share the link.
 
 ## Step-by-Step Breakdown
 
