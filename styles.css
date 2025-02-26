@@ -99,7 +99,8 @@ h1 {
   background-color: var(--primary-color);
   border-radius: 34px;
   cursor: pointer;
-  transition: var(--transition);
+  transition: background-color 0.2s ease;
+  overflow: hidden;
 }
 
 .toggle-label:before {
@@ -110,9 +111,11 @@ h1 {
   height: 26px;
   border-radius: 50%;
   background-color: white;
-  transition: var(--transition);
+  transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   transform: translateY(-50%);
   top: 50%;
+  z-index: 2;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
 }
 
 .toggle-input:checked + .toggle-label:before {
@@ -124,7 +127,9 @@ h1 {
   font-size: 14px;
   font-weight: bold;
   opacity: 0.6;
-  transition: var(--transition);
+  transition: opacity 0.2s ease;
+  position: relative;
+  z-index: 1;
 }
 
 .toggle-text.active {

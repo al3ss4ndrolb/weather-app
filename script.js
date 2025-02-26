@@ -3,7 +3,7 @@ const visualCrossingApiKey = "W66J7CBUGEY4FC9SRYYK66YEQ";
 const openWeatherMapApiKey = "bd5e378503939ddaee76f12ad7a97608"; // Free tier API key for OpenWeatherMap
 
 // State variables
-let useMetric = false; // false = Fahrenheit, true = Celsius
+let useMetric = true; // true = Celsius, false = Fahrenheit
 let savedLocations = [];
 
 // Load saved locations from localStorage if available
@@ -16,6 +16,21 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Render saved location cards
   renderSavedLocationCards();
+
+  // Set the initial state of the toggle switch
+  const unitSwitch = document.getElementById("unit-switch");
+  if (unitSwitch) {
+    unitSwitch.checked = !useMetric; // Invert the logic: checked = Fahrenheit
+    const celsiusText = document.querySelector(".toggle-text.celsius");
+    const fahrenheitText = document.querySelector(".toggle-text.fahrenheit");
+    if (useMetric) {
+      celsiusText.classList.add("active");
+      fahrenheitText.classList.remove("active");
+    } else {
+      celsiusText.classList.remove("active");
+      fahrenheitText.classList.add("active");
+    }
+  }
 });
 
 // Set up all event listeners
@@ -71,7 +86,7 @@ function handleFormSubmit(e) {
 
 // Handle temperature unit toggle
 function handleUnitToggle(e) {
-  useMetric = e.target.checked;
+  useMetric = !e.target.checked; // Invert the logic: checked = Fahrenheit
 
   // Update toggle UI
   const celsiusText = document.querySelector(".toggle-text.celsius");
@@ -85,7 +100,7 @@ function handleUnitToggle(e) {
     fahrenheitText.classList.add("active");
   }
 
-  // Update all cards with new temperature unit
+  // Immediately update all cards with the new temperature unit
   updateAllCards();
 }
 
@@ -102,10 +117,8 @@ function handleCardActions(e) {
 
 // Fetch weather data from API
 function fetchWeatherData(location) {
-  // Visual Crossing API sometimes needs explicit parameters for AQI
-  const apiUrl = `https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/${location}?key=${visualCrossingApiKey}&unitGroup=${
-    useMetric ? "metric" : "us"
-  }&include=current,alerts&elements=datetime,temp,feelslike,humidity,windspeed,conditions,aqi`;
+  // Always fetch in metric units for consistency, regardless of display preference
+  const apiUrl = `https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/${location}?key=${visualCrossingApiKey}&unitGroup=metric&include=current,alerts&elements=datetime,temp,feelslike,humidity,windspeed,conditions,aqi`;
 
   console.log("Fetching weather data from:", apiUrl);
 
@@ -117,6 +130,14 @@ function fetchWeatherData(location) {
       return response.json();
     })
     .then((data) => {
+      // Store original temperature values (always in metric)
+      const originalTemp = data.currentConditions.temp;
+      const originalFeelsLike = data.currentConditions.feelslike;
+
+      // Store original values in the dataset for future conversions
+      data.currentConditions.originalTemp = originalTemp;
+      data.currentConditions.originalFeelsLike = originalFeelsLike;
+
       console.log("API Response:", data);
       return data;
     })
@@ -256,35 +277,38 @@ function updateWeatherCard(location) {
       );
       if (existingData) {
         console.log("Using cached data for unit change:", existingData);
-        const weatherCard = createWeatherCard(existingData, cardId);
+
+        // Use original temperature values for conversion
+        const originalTemp = existingData.currentConditions.originalTemp;
+        const originalFeelsLike =
+          existingData.currentConditions.originalFeelsLike;
+
+        // Convert temperature and feels like based on the current unit
+        const temp = useMetric ? originalTemp : (originalTemp * 9) / 5 + 32;
+        const feelsLike = useMetric
+          ? originalFeelsLike
+          : (originalFeelsLike * 9) / 5 + 32;
+
+        const weatherCard = createWeatherCard(
+          {
+            ...existingData,
+            currentConditions: {
+              ...existingData.currentConditions,
+              temp,
+              feelslike: feelsLike,
+              // Keep the original AQI value unchanged
+              aqi: existingData.currentConditions.aqi,
+            },
+          },
+          cardId
+        );
         existingCard.parentNode.replaceChild(weatherCard, existingCard);
         return;
       }
     }
 
-    // Fetch updated data
+    // Fetch updated data if not just a unit change
     fetchWeatherData(location)
-      .then((data) => {
-        // Check if we need to fetch AQI data separately
-        const current = data.currentConditions;
-        let hasAqi = current && current.aqi !== undefined;
-
-        if (!hasAqi) {
-          // Try to fetch AQI data from OpenWeatherMap
-          return fetchAqiData(location).then((aqiValue) => {
-            if (aqiValue !== null) {
-              // Add AQI to the data
-              if (!data.currentConditions) {
-                data.currentConditions = {};
-              }
-              data.currentConditions.aqi = aqiValue;
-            }
-            return data;
-          });
-        }
-
-        return data;
-      })
       .then((data) => {
         const weatherCard = createWeatherCard(data, cardId);
         existingCard.parentNode.replaceChild(weatherCard, existingCard);
@@ -336,9 +360,25 @@ function createWeatherCard(data, cardId) {
   console.log("Creating weather card with data:", data);
   console.log("Current conditions:", current);
 
+  // Get original temperature values
+  const originalTemp = current.originalTemp || current.temp;
+  const originalFeelsLike = current.originalFeelsLike || current.feelslike;
+  const originalWindSpeed = current.windspeed;
+
   // Format temperature based on selected unit
-  const temp = useMetric ? current.temp : current.temp;
+  const temp = Math.round(
+    useMetric ? originalTemp : (originalTemp * 9) / 5 + 32
+  );
+  const feelsLike = Math.round(
+    useMetric ? originalFeelsLike : (originalFeelsLike * 9) / 5 + 32
+  );
   const tempUnit = useMetric ? "°C" : "°F";
+
+  // Convert wind speed based on selected unit
+  const windSpeed = useMetric
+    ? Math.round(originalWindSpeed)
+    : Math.round(originalWindSpeed * 0.621371); // Convert km/h to mph
+  const windUnit = useMetric ? "km/h" : "mph";
 
   const card = document.createElement("div");
   card.className = "weather-card";
@@ -396,7 +436,7 @@ function createWeatherCard(data, cardId) {
       </button>
     </div>
     <div class="weather-details">
-      <div class="temp-display">${Math.round(temp)}${tempUnit}</div>
+      <div class="temp-display">${temp}${tempUnit}</div>
       <div class="conditions">
         <i class="${weatherIcon}"></i>
         <span class="conditions-text">${current.conditions}</span>
@@ -404,9 +444,7 @@ function createWeatherCard(data, cardId) {
       
       <div class="weather-info-row">
         <span class="info-label">Feels Like</span>
-        <span class="info-value">${Math.round(
-          current.feelslike
-        )}${tempUnit}</span>
+        <span class="info-value">${feelsLike}${tempUnit}</span>
       </div>
       <div class="weather-info-row">
         <span class="info-label">Humidity</span>
@@ -414,13 +452,26 @@ function createWeatherCard(data, cardId) {
       </div>
       <div class="weather-info-row">
         <span class="info-label">Wind</span>
-        <span class="info-value">${current.windspeed} ${
-    useMetric ? "km/h" : "mph"
-  }</span>
+        <span class="info-value">${windSpeed} ${windUnit}</span>
       </div>
       ${aqiHtml}
     </div>
   `;
+
+  // Synchronize the toggle switch with the displayed temperature unit
+  const unitSwitch = document.getElementById("unit-switch");
+  if (unitSwitch) {
+    unitSwitch.checked = !useMetric; // Invert the logic: checked = Fahrenheit
+    const celsiusText = document.querySelector(".toggle-text.celsius");
+    const fahrenheitText = document.querySelector(".toggle-text.fahrenheit");
+    if (useMetric) {
+      celsiusText.classList.add("active");
+      fahrenheitText.classList.remove("active");
+    } else {
+      celsiusText.classList.remove("active");
+      fahrenheitText.classList.add("active");
+    }
+  }
 
   return card;
 }
